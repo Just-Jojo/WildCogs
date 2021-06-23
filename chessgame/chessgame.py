@@ -11,6 +11,7 @@ from redbot.core.utils.predicates import ReactionPredicate
 
 from .game import Game, start_help_text
 from copy import copy
+from contextlib import suppress
 
 # type hints
 Games = Dict[str, Game]
@@ -304,12 +305,9 @@ class ChessGame(commands.Cog):
                 ),
             )
             return await ctx.send(embed=embed)
+        msg = None
         if not confirm:
-            embed = discord.Embed(
-                title=f"Chess",
-                description="Would you like to resign?",
-                colour=await ctx.embed_colour(),
-            )
+            embed.add_field(name="Please confirm.", value="Would you like to resign?")
             msg = await ctx.send(embed=embed)
             start_adding_reactions(msg, ReactionPredicate.YES_OR_NO_EMOJIS)
             pred = ReactionPredicate.yes_or_no(msg, user=ctx.author)
@@ -341,7 +339,11 @@ class ChessGame(commands.Cog):
                 ),
             )
         del games[game_name]
-        await ctx.send(embed=embed)
+        if msg:
+            with suppress(discord.NotFound):
+                await msg.edit(embed=embed)
+        else:
+            await ctx.send(embed=embed)
         await self._set_games(ctx.channel, games)
 
     @chess.group(name='draw')
