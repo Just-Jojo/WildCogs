@@ -294,6 +294,35 @@ class ChessGame(commands.Cog):
                 game.player_white_id, game.player_black_id
             )
         ]
+        if ctx.author not in (player_white, player_black):
+            embed.add_field(
+                name=f"{ctx.author.name} - Not player",
+                value=(
+                    f"{ctx.author.name} you are not a part of the game!\n"
+                    f"Only {player_black.name} (Black) and {player_white.name} (White) "
+                    "are able to play this game"
+                ),
+            )
+            return await ctx.send(embed=embed)
+        if not confirm:
+            embed = discord.Embed(
+                title=f"Chess",
+                description="Would you like to resign?",
+                colour=await ctx.embed_colour(),
+            )
+            msg = await ctx.send(embed=embed)
+            pred = ReactionPredicate.yes_or_no(msg, user=ctx.author)
+            try:
+                await ctx.bot.wait_for("reaction_add", check=pred)
+                if not pred.result:
+                    embed.add_field(
+                        name="Cancelled",
+                        value=f"{ctx.author.name} has not confirmed a resignation"
+                    )
+                    return await msg.edit(embed=embed)
+            except asyncio.TimeoutError:
+                embed.add_field(name="Timed out", value=f"{ctx.author.name} did not respond.")
+                return await msg.edit(embed=embed)
         if ctx.author == player_white:
             embed.add_field(
                 name=f"{player_black.name} resigned",
@@ -310,16 +339,6 @@ class ChessGame(commands.Cog):
                     f"Player {player_white.name} (White) has won!"
                 ),
             )
-        else:
-            embed.add_field(
-                name=f"{ctx.author.name} - Not player",
-                value=(
-                    f"{ctx.author.name} you are not a part of the game!\n"
-                    f"Only {player_black.name} (Black) and {player_white.name} (White) "
-                    "are able to play this game"
-                ),
-            )
-            return await ctx.send(embed=embed)
         del games[game_name]
         await ctx.send(embed=embed)
         await self._set_games(ctx.channel, games)
