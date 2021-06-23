@@ -379,7 +379,7 @@ class ChessGame(commands.Cog):
         ):
             return
         move = msg.content.strip("`")
-        games = await self._config.channel.games()
+        games = await self._config.channel(msg.channel).games()
         found = False
         for name, game in games.items():
             if ctx.author.id in (game.player_black_id, game.player_white_id):
@@ -392,4 +392,4 @@ class ChessGame(commands.Cog):
         if not prefixes:
             return # Dunno
         fake_msg.content = f"{prefixes[0]}chess move {found} {move}"
-        self.bot.dispath("message", fake_msg)
+        self.bot.dispatch("message", fake_msg)
