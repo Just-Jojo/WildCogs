@@ -369,27 +369,3 @@ class ChessGame(commands.Cog):
 
         await message.edit(embed=embed)
         await message.clear_reactions()
-
-    @commands.Cog.listener()
-    async def on_message_without_command(self, msg: discord.Message):
-        if any(
-            [
-                msg.author.bot, not msg.guild, not msg.content.startswith("`")
-            ]
-        ):
-            return
-        move = msg.content.strip("`")
-        games = await self._config.channel(msg.channel).games()
-        found = False
-        for name, game in games.items():
-            if ctx.author.id in (game.player_black_id, game.player_white_id):
-                found = name
-                break
-        if not found:
-            return
-        fake_msg = copy(msg)
-        prefixes = await self.bot.get_valid_prefixes(msg.guild)
-        if not prefixes:
-            return # Dunno
-        fake_msg.content = f"{prefixes[0]}chess move {found} {move}"
-        self.bot.dispatch("message", fake_msg)
