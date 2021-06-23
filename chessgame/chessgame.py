@@ -311,6 +311,7 @@ class ChessGame(commands.Cog):
                 colour=await ctx.embed_colour(),
             )
             msg = await ctx.send(embed=embed)
+            start_adding_reactions(msg, ReactionPredicate.YES_OR_NO_EMOJIS)
             pred = ReactionPredicate.yes_or_no(msg, user=ctx.author)
             try:
                 await ctx.bot.wait_for("reaction_add", check=pred)
