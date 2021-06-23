@@ -275,6 +275,8 @@ class ChessGame(commands.Cog):
 
         try:
             games = await self._config.channel(ctx.channel).games()
+            if not isinstance(games, dict):
+                return await ctx.send("I'm sorry, something went wrong")
             game = games[game_name]
         except KeyError:
             embed.add_field(
