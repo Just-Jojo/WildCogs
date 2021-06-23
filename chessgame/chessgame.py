@@ -10,6 +10,7 @@ from redbot.core.utils.menus import start_adding_reactions
 from redbot.core.utils.predicates import ReactionPredicate
 
 from .game import Game, start_help_text
+from copy import copy
 
 # type hints
 Games = Dict[str, Game]
@@ -21,11 +22,12 @@ class ChessGame(commands.Cog):
     _fifty_moves = 'Fifty moves'
     _threefold_repetition = 'Threefold repetition'
 
-    def __init__(self):
+    def __init__(self, bot):
         super().__init__()
 
         self._config = Config.get_conf(
             self, identifier=51314929031968350236701571200827144869558993811)
+        self.bot = bot
 
     async def _get_games(self, channel) -> Games:
         games_json = await self._config.channel(channel).games()
@@ -70,9 +72,11 @@ class ChessGame(commands.Cog):
 
         game_name += suffix
 
-        embed: discord.Embed = discord.Embed()
-        embed.title = "Chess"
-        embed.description = f"Game: {game_name}"
+        embed: discord.Embed = discord.Embed(
+            title="Chess",
+            description=f"Game: {game_name}",
+            colour=await ctx.embed_colour()
+        )
 
         try:
             game = Game(player_black.id, player_white.id, game_type)
@@ -84,11 +88,6 @@ class ChessGame(commands.Cog):
         games[game_name] = game
 
         await self._set_games(ctx.channel, games)
-
-        embed: discord.Embed = discord.Embed()
-        embed.title = "Chess"
-        embed.description = f"Game: {game_name}"
-        embed.add_field(name="Type:", value=game.type, inline=False)
 
         embed.add_field(name="New Game",
                         value=f"<@{player_white.id}>'s (White's) turn is first",
@@ -109,10 +108,11 @@ class ChessGame(commands.Cog):
 
         max_len = 1000
 
-        embed: discord.Embed = discord.Embed()
-
-        embed.title = "Chess"
-        embed.description = "Chess Game List"
+        embed: discord.Embed = discord.Embed(
+            title="Chess",
+            description="Chess Game List",
+            colour=await ctx.embed_colour()
+        )
 
         total_len = len(embed.title) + len(embed.description)
 
@@ -165,17 +165,17 @@ class ChessGame(commands.Cog):
         if no_games:
             embed.add_field(name="No Games Available",
                             value='You can start a new game with [p]chess start')
-            await ctx.send(embed=embed)
-        elif total_len > 0:
-            await ctx.send(embed=embed)
+        await ctx.send(embed=embed)
 
     @chess.command(name='move', autohelp=False)
     async def move_piece(self, ctx: commands.Context, game_name: str, move: str):
         """move the next game piece, using Standard Algebraic Notation"""
 
-        embed: discord.Embed = discord.Embed()
-        embed.title = "Chess"
-        embed.description = f"Game: {game_name}"
+        embed: discord.Embed = discord.Embed(
+            title="Chess",
+            description=f"Game: {game_name}",
+            colour=await ctx.embed_colour(),
+        )
 
         try:
             games = await self._get_games(ctx.channel)
@@ -269,10 +269,10 @@ class ChessGame(commands.Cog):
     async def claim_draw(self, ctx: commands.Context, game_name: str, claim_type: str):
         """if valid claim made to draw the game will end with no victor"""
 
-        embed: discord.Embed = discord.Embed()
-
-        embed.title = "Chess"
-        embed.description = "Claim Draw"
+        embed: discord.Embed = discord.Embed(
+            title="Chess",
+            description="Claim Draw",
+        )
 
         try:
             games = await self._get_games(ctx.channel)
@@ -311,10 +311,10 @@ class ChessGame(commands.Cog):
     async def by_agreement(self, ctx: commands.Context, game_name: str):
         """Offer draw by agreement"""
 
-        embed: discord.Embed = discord.Embed()
-
-        embed.title = "Chess"
-        embed.description = "Offer Draw"
+        embed: discord.Embed = discord.Embed(
+            title="Chess",
+            description="Offer Draw"
+        )
 
         try:
             games = await self._get_games(ctx.channel)
@@ -369,3 +369,27 @@ class ChessGame(commands.Cog):
 
         await message.edit(embed=embed)
         await message.clear_reactions()
+
+    @commands.Cog.listener()
+    async def on_message_without_command(self, msg: discord.Message):
+        if any(
+            [
+                msg.author.bot, not msg.guild, not msg.content.startswith("`")
+            ]
+        ):
+            return
+        move = msg.content.strip("`")
+        games = await self._config.channel.games()
+        found = False
+        for name, game in games.items():
+            if ctx.author.id in (game.player_black_id, game.player_white_id):
+                found = name
+                break
+        if not found:
+            return
+        fake_msg = copy(msg)
+        prefixes = await self.bot.get_valid_prefixes(msg.guild)
+        if not prefixes:
+            return # Dunno
+        fake_msg.content = f"{prefixes[0]}chess move {found} {move}"
+        self.bot.dispath("message", fake_msg)
