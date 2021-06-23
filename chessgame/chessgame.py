@@ -29,6 +29,9 @@ class ChessGame(commands.Cog):
             self, identifier=51314929031968350236701571200827144869558993811)
         self.bot = bot
 
+    async def cog_check(self, ctx: commands.Context) -> bool:
+        return ctx.channel.permissions_for(ctx.me).embed_links is True
+
     async def _get_games(self, channel) -> Games:
         games_json = await self._config.channel(channel).games()
         if games_json:
@@ -43,13 +46,13 @@ class ChessGame(commands.Cog):
 
     @commands.group()
     async def chess(self, ctx: commands.Context):
-        """manage chess games"""
+        """Manage chess games"""
 
     @chess.command(name='start', autohelp=False, help=start_help_text())
     async def start_game(self, ctx: commands.Context,
                          other_player: discord.Member,
                          game_name: str = None, game_type: str = None):
-        """sub command to start a new game"""
+        """Sub command to start a new game"""
 
         # get games config
         games = await self._get_games(ctx.channel)
@@ -96,14 +99,14 @@ class ChessGame(commands.Cog):
         await self._display_board(ctx, embed, game)
 
     async def _display_board(self, ctx: commands.Context, embed: discord.Embed, game: Game):
-        """displays the game board"""
+        """Displays the game board"""
         board_image = io.BytesIO(game.get_board_image())
         embed.set_image(url="attachment://board.png")
         await ctx.send(embed=embed, file=discord.File(board_image, 'board.png'))
 
     @chess.command(name='list', autohelp=False)
     async def list_games(self, ctx: commands.Context):
-        """list all available games"""
+        """List all available games"""
         no_games = True
 
         max_len = 1000
@@ -169,7 +172,7 @@ class ChessGame(commands.Cog):
 
     @chess.command(name='move', autohelp=False)
     async def move_piece(self, ctx: commands.Context, game_name: str, move: str):
-        """move the next game piece, using Standard Algebraic Notation"""
+        """Move the next game piece, using Standard Algebraic Notation"""
 
         embed: discord.Embed = discord.Embed(
             title="Chess",
@@ -261,13 +264,69 @@ class ChessGame(commands.Cog):
                             '(White) are able to play in this game")
             await ctx.send(embed=embed)
 
+    @chess.command(name="resign")
+    async def resign(self, ctx: commands.Context, game_name: str, confirm: bool = False):
+        """Resign the game"""
+        embed = discord.Embed(
+            title="Chess",
+            description=f"Game: {game_name}",
+            colour=await ctx.embed_colour(),
+        )
+
+        try:
+            games = await self._config.channel(ctx.channel).games()
+            game = games[game_name]
+        except KeyError:
+            embed.add_field(
+                name="Game does not exist",
+                value=(
+                    "This game does not appear to exist, please check "
+                    "the game list to ensure you are entering it correctly"
+                )
+            )
+            return await ctx.send(embed=embed)
+        player_white, player_black = [
+            ctx.guild.get_member(_id)
+            for _id in (
+                game.player_white_id, game.player_black_id
+            )
+        ]
+        if ctx.author == player_white:
+            embed.add_field(
+                name=f"{player_black.name} resigned",
+                values=(
+                    f"Player {player_white.name} (White) has resigned!\n"
+                    f"Player {palyer_black.name} (Black) has won!"
+                ),
+            )
+        elif ctx.author == player_black:
+            embed.add_field(
+                name=f"{player_black.name} resigned",
+                value=(
+                    f"Player {player_black.name} (Black) has resigned!\n"
+                    f"Player {player_white.name} (White) has won!"
+                ),
+            )
+        else:
+            embed.add_field(
+                name=f"{ctx.author.name} - Not player",
+                value=(
+                    f"{ctx.author.name} you are not a part of the game!\n"
+                    f"Only {player_black.name} (Black) and {player_white.name} (White) "
+                    "are able to play this game"
+                ),
+            )
+            return await ctx.send(embed=embed)
+        del games[game_name]
+        return await ctx.send(embed=embed)
+
     @chess.group(name='draw')
     async def draw(self, ctx: commands.Context):
-        """draw related commands"""
+        """Draw related commands"""
 
     @draw.command(name='claim', autohelp=False)
     async def claim_draw(self, ctx: commands.Context, game_name: str, claim_type: str):
-        """if valid claim made to draw the game will end with no victor"""
+        """If valid claim made to draw the game will end with no victor"""
 
         embed: discord.Embed = discord.Embed(
             title="Chess",
