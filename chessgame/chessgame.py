@@ -30,7 +30,10 @@ class ChessGame(commands.Cog):
         self.bot = bot
 
     async def cog_check(self, ctx: commands.Context) -> bool:
-        return ctx.channel.permissions_for(ctx.me).embed_links is True
+        if not ctx.guild:
+            return False
+        permissions = ctx.channel.permissions_for(ctx.me)
+        return all([permissions.embed_links, permissions.add_reactions])
 
     async def _get_games(self, channel) -> Games:
         games_json = await self._config.channel(channel).games()
@@ -318,7 +321,8 @@ class ChessGame(commands.Cog):
             )
             return await ctx.send(embed=embed)
         del games[game_name]
-        return await ctx.send(embed=embed)
+        await ctx.send(embed=embed)
+        await self._set_games(ctx.channel, games)
 
     @chess.group(name='draw')
     async def draw(self, ctx: commands.Context):
