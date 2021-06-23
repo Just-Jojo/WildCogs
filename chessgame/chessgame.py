@@ -337,6 +337,7 @@ class ChessGame(commands.Cog):
                     f"Player {player_black.name} (Black) has resigned!\n"
                     f"Player {player_white.name} (White) has won!"
                 ),
+                inline=False,
             )
         del games[game_name]
         if msg:
