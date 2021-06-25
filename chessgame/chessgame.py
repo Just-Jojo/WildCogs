@@ -327,7 +327,7 @@ class ChessGame(commands.Cog):
                 name=f"{player_black.name} resigned",
                 values=(
                     f"Player {player_white.name} (White) has resigned!\n"
-                    f"Player {palyer_black.name} (Black) has won!"
+                    f"Player {player_black.name} (Black) has won!"
                 ),
             )
         elif ctx.author == player_black:
