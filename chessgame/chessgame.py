@@ -326,7 +326,7 @@ class ChessGame(commands.Cog):
                 return await msg.edit(embed=embed)
         if ctx.author == player_white:
             embed.add_field(
-                name=f"{player_black.name} resigned",
+                name=f"{player_white.name} resigned",
                 value=(
                     f"Player {player_white.name} (White) has resigned!\n"
                     f"Player {player_black.name} (Black) has won!"
