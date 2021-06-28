@@ -65,6 +65,8 @@ class ChessGame(commands.Cog):
 
         player_black = ctx.author
         player_white = other_player
+        if player_black == player_white:
+            return await ctx.send("You cannot play chess with yourself")
 
         # init game_name if not provided
         if not game_name:
@@ -325,7 +327,7 @@ class ChessGame(commands.Cog):
         if ctx.author == player_white:
             embed.add_field(
                 name=f"{player_black.name} resigned",
-                values=(
+                value=(
                     f"Player {player_white.name} (White) has resigned!\n"
                     f"Player {player_black.name} (Black) has won!"
                 ),
