@@ -2,6 +2,6 @@
 from .chessgame import ChessGame
 
 
-def setup(bot):
+async def setup(bot):
     """add cog to bot collection"""
-    bot.add_cog(ChessGame(bot))
+    await bot.add_cog(ChessGame(bot))
